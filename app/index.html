@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Без user-scalable=no: iOS Safari игнорирует его с iOS 10 (авто-зум по
+         фокусу на инпуте всё равно сработает — от него защищает кегль 16px в
+         styles.css), зато он отбирает у пользователя пинч-зум, которым тот
+         мог бы отменить зависший зум. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Семейный бюджет</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <!-- Единственный разрешённый внешний скрипт (план, шаг 8) — исключение
+         из правила "без CDN", которое относится к библиотеке графиков. -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

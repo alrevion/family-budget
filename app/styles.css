@@ -1,0 +1,2056 @@
+/* Семейный бюджет — Telegram Mini App.
+   Направление: утилитарный финтех, не редакционный дефолт. Приоритет
+   продукта — скорость ввода, не украшательство (бриф заказчика). System-ui
+   стек намеренно: CDN-шрифты запрещены планом (единственный внешний скрипт —
+   telegram-web-app.js), а самохостинг шрифта ради вторичного приоритета
+   "красота" не оправдан. Интонация держится цветом, весом и плотной сеткой
+   чисел (tabular-nums), а не гарнитурой. Акцент — глубокий изумруд:
+   нейтральный к деньгам, не банковский синий и не AI-слоп-фиолетовый. */
+
+/* Тема. Источник правды — Telegram (theme.ts проставляет --tg-* на <html>
+   из WebApp.themeParams и переподставляет их по themeChanged). Литералы
+   ниже — фолбэк для запуска вне Telegram: в тёмном Telegram на светлой iOS
+   prefers-color-scheme дал бы светлую тему и приложение выглядело бы чужим.
+   Светлую/тёмную ветку выбирает [data-theme] от WebApp.colorScheme, а
+   prefers-color-scheme остаётся только когда Telegram схему не сообщил.
+
+   Деньги (--income/--expense) НЕ берём из themeParams: красный расход обязан
+   быть красным при любой теме пользователя. */
+
+:root {
+  --bg: var(--tg-bg, #f7f8f6);
+  --surface: var(--tg-surface, #ffffff);
+  --surface-2: var(--tg-surface-2, #eef1ec);
+  --text: var(--tg-text, #16211c);
+  --text-muted: var(--tg-text-muted, #5c6b62);
+  --border: var(--tg-border, #dde3dc);
+  --accent: var(--tg-accent, #0f7a5c);
+  --accent-text: var(--tg-accent-text, #ffffff);
+  --link: var(--tg-link, var(--accent));
+  --income: #0f7a5c;
+  --expense: #b23a3a;
+  --danger: var(--tg-danger, #b23a3a);
+  --warning-bg: #fbe9d7;
+  --warning-text: #8a4b12;
+  --skeleton: rgba(22, 33, 28, 0.07);
+  --shadow: 0 1px 2px rgba(22, 33, 28, 0.06), 0 4px 16px rgba(22, 33, 28, 0.06);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  /* Единый шаг движения: короче 150мс глаз не читает как переход,
+     длиннее 300мс мешает быстрому вводу (приоритет продукта — скорость). */
+  --dur: 180ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  color-scheme: light;
+}
+
+/* Общая тёмная палитра для обеих веток — Telegram-схемы и системной. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--tg-bg, #0e1512);
+    --surface: var(--tg-surface, #16211c);
+    --surface-2: var(--tg-surface-2, #1d2a23);
+    --text: var(--tg-text, #eaf2ed);
+    --text-muted: var(--tg-text-muted, #9aafa3);
+    --border: var(--tg-border, #29372f);
+    --accent: var(--tg-accent, #2fbe8f);
+    --accent-text: var(--tg-accent-text, #06120d);
+    --income: #4fd6a4;
+    --expense: #e5716b;
+    --danger: var(--tg-danger, #e5716b);
+    --warning-bg: #3a2a12;
+    --warning-text: #e8b978;
+    --skeleton: rgba(234, 242, 237, 0.09);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: var(--tg-bg, #0e1512);
+  --surface: var(--tg-surface, #16211c);
+  --surface-2: var(--tg-surface-2, #1d2a23);
+  --text: var(--tg-text, #eaf2ed);
+  --text-muted: var(--tg-text-muted, #9aafa3);
+  --border: var(--tg-border, #29372f);
+  --accent: var(--tg-accent, #2fbe8f);
+  --accent-text: var(--tg-accent-text, #06120d);
+  --income: #4fd6a4;
+  --expense: #e5716b;
+  --danger: var(--tg-danger, #e5716b);
+  --warning-bg: #3a2a12;
+  --warning-text: #e8b978;
+  --skeleton: rgba(234, 242, 237, 0.09);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+}
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+#app {
+  min-height: 100dvh;
+}
+
+button,
+input,
+textarea,
+select,
+label,
+[role="button"],
+[role="tab"],
+.keypad,
+.category-grid {
+  /* iOS считает два быстрых тапа по одной области двойным тапом и зумит
+     страницу. На цифровой клавиатуре, по которой бьют очередями, это
+     срабатывает постоянно. `manipulation` отключает ИМЕННО жест
+     двойного тапа, оставляя пинч-зум — им пользователь и отменит
+     случайный зум, и увеличит текст, если понадобится. Поэтому здесь
+     нельзя возвращать user-scalable=no: он и не работает на iOS с 10-й
+     версии, и отбирает единственный законный способ зумить.
+     Контейнеры .keypad и .category-grid добавлены из-за промахов
+     в зазоры между кнопками: там тап ловит не кнопка, а сетка. */
+  touch-action: manipulation;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---- Layout shell -------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.screen-host {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
+}
+
+.screen {
+  padding: 20px 16px 24px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.screen.loading {
+  color: var(--text-muted);
+  text-align: center;
+  padding-top: 40vh;
+}
+
+/* ---- Bottom nav ------------------------------------------------------ */
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 20;
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  padding: 8px 4px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-muted);
+  cursor: pointer;
+  min-height: 52px;
+  transition: color var(--dur) var(--ease);
+}
+
+.nav-icon {
+  display: block;
+  line-height: 0;
+  transition: transform 90ms var(--ease);
+}
+
+.nav-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+/* Активная вкладка помечена не только цветом: иконка становится жирнее,
+   а подпись — плотнее (правило color-not-only). */
+.nav-btn-active .nav-icon svg {
+  stroke-width: 2.4;
+}
+
+.nav-btn:active .nav-icon {
+  transform: scale(0.9);
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Акцентный ТЕКСТ берём из --link, а не --accent: theme.ts гарантирует ему
+   4.5:1 на фоне, тогда как button_color рассчитан на заливку, а не на текст
+   (белая подпись на телеграмном синем — 3.7:1). */
+.nav-btn-active {
+  color: var(--link);
+}
+
+/* ---- Buttons ----------------------------------------------------------- */
+
+.btn {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  min-height: 48px;
+  /* Отклик мгновенный (transform, без пересчёта лейаута), возврат плавный. */
+  transition: transform 90ms var(--ease), opacity 90ms var(--ease);
+}
+
+.btn:active {
+  transform: scale(0.975);
+}
+
+.btn-block {
+  width: 100%;
+  display: block;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.btn-ghost {
+  background: none;
+  color: var(--link);
+}
+
+.btn-danger-ghost {
+  background: none;
+  color: var(--danger);
+}
+
+/* ---- Home -------------------------------------------------------------- */
+
+.hero-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+}
+
+.hero-card-danger {
+  background: var(--warning-bg);
+}
+
+.hero-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Главное число экрана. Разрыв со вторичными карточками (17px) намеренно
+   большой: баланс должен читаться первым с одного взгляда. */
+.hero-value {
+  font-size: 36px;
+  line-height: 1.05;
+  font-weight: 700;
+  margin-top: 8px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-value.negative {
+  color: var(--expense);
+}
+
+.hero-value.positive {
+  color: var(--income);
+}
+
+/* Предупреждение никогда не держится на одном цвете: рядом обязательна
+   иконка, иначе смысл теряется при дальтонизме (color-not-only). */
+.warning-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.warning-text svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.secondary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  text-align: left;
+  border: none;
+}
+
+.stat-card-tappable {
+  cursor: pointer;
+  transition: transform 90ms var(--ease);
+}
+
+.stat-card-tappable:active {
+  transform: scale(0.98);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  margin-top: 6px;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  z-index: 15;
+  transition: transform 90ms var(--ease);
+}
+
+.fab:active {
+  transform: scale(0.92);
+}
+
+.fab svg {
+  stroke-width: 2.4;
+}
+
+/* ---- Onboarding --------------------------------------------------------- */
+
+.onboarding-screen {
+  padding-top: 10vh;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.onboarding-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.onboarding-sub {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0 0 24px;
+  line-height: 1.4;
+}
+
+/* ---- Keypad --------------------------------------------------------- */
+
+.keypad {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.keypad-display {
+  font-size: 34px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 0;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  /* Длинная сумма не должна распирать шторку в горизонтальный скролл. */
+  overflow-wrap: anywhere;
+}
+
+.keypad-display-empty {
+  color: var(--text-muted);
+}
+
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.keypad-key {
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 21px;
+  font-weight: 600;
+  padding: 0;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  /* Отклик должен успеть за быстрым вводом: без transition на нажатии
+     подсветка появляется в тот же кадр, плавным делаем только возврат. */
+  transition: background-color 140ms var(--ease), transform 140ms var(--ease);
+}
+
+/* По клавиатуре бьют часто и вслепую — одного фона мало. Даём одновременно
+   заливку акцентом, сжатие и кольцо: три сигнала, ни один не двигает лейаут. */
+.keypad-key:active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+  box-shadow: inset 0 0 0 2px var(--accent);
+  transform: scale(0.94);
+  transition-duration: 0ms;
+}
+
+.keypad-key svg {
+  display: block;
+}
+
+/* ---- Forms / sheets -------------------------------------------------- */
+
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  z-index: 40;
+  animation: overlay-in var(--dur) var(--ease) both;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.sheet {
+  background: var(--bg);
+  width: 100%;
+  min-width: 0;
+  max-height: 92dvh;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: sheet-in 240ms var(--ease) both;
+}
+
+/* Только transform/opacity — height/top заставили бы пересчитывать лейаут
+   каждый кадр, а шторка открывается поверх клавиатуры ввода. */
+@keyframes sheet-in {
+  from {
+    transform: translateY(12%);
+    opacity: 0;
+  }
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+}
+
+.sheet-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 44x44 — минимальная тач-цель. Было 32x32: в неё промахиваются. */
+.sheet-close {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 90ms var(--ease);
+}
+
+.sheet-close:active {
+  transform: scale(0.9);
+}
+
+.sheet-body {
+  padding: 16px;
+  /* Нижний отступ под жестовую полосу: шторка прижата к низу экрана. */
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+
+.confirm-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 340px;
+  box-shadow: var(--shadow);
+}
+
+.confirm-message {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.confirm-actions .btn {
+  min-height: 44px;
+}
+
+.confirm-box {
+  animation: sheet-in 200ms var(--ease) both;
+}
+
+.tx-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* font-size ровно 16px, не меньше: iOS Safari авто-зумит страницу при
+   фокусе на редактируемом контроле с кеглем < 16px, и обратно не отъезжает —
+   форма остаётся сдвинутой. user-scalable=no это не лечит (iOS игнорирует
+   его с iOS 10), поэтому единственный рабочий барьер — кегль. */
+.text-input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 16px;
+  line-height: 1.35;
+  width: 100%;
+  min-width: 0;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.text-input:focus-visible,
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ---- Поле даты ------------------------------------------------------- */
+
+/* Нативный input[type=date] выведен из потока намеренно. Замер в iOS Safari:
+   при `width:100%` внутри контейнера 358px его border-box становится 388px —
+   WebKit не применяет к этому контролу box-sizing:border-box, и лишние 30px
+   уводили .sheet-body в горизонтальный скролл (см. date-field.ts). Абсолютный
+   слой ничего распирать не может, а тап по нему открывает штатный пикер.
+   Видимое значение рисуем сами — иначе контрол печатает дату в локали
+   устройства ("Aug 25, 2026" при английской системе). */
+.date-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  min-height: 48px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.date-field:focus-within {
+  border-color: var(--accent);
+}
+
+.date-field-caption {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  flex: none;
+}
+
+.date-field-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-field-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.date-field-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  opacity: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.date-field:active {
+  background: var(--border);
+}
+
+.segmented {
+  display: flex;
+  /* 8px — минимальный зазор между соседними тач-целями. */
+  gap: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  min-width: 0;
+}
+
+.segmented-wrap {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.segmented-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 6px;
+  min-height: 44px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+/* Выбранный сегмент отличается не только цветом текста: подложка + тень. */
+.segmented-btn-active {
+  /* Заливка акцентом, а не белым по светло-серому: разница между
+     выбранным и невыбранным должна читаться с одного взгляда. */
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.hidden-toggle-row:empty,
+.hidden-section:empty {
+  display: none;
+}
+
+.hidden-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hidden-toggle-row {
+  min-height: 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Вся строка — тач-цель, не только сам чекбокс 20x20. */
+.checkbox-row {
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.checkbox-row input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.hidden-warning {
+  font-size: 13px;
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 10px 0 0;
+  line-height: 1.4;
+}
+
+.tx-details summary {
+  font-weight: 600;
+  color: var(--link);
+  cursor: pointer;
+  padding: 12px 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+}
+
+.category-grid {
+  display: grid;
+  /* minmax(0,1fr), а не 1fr: 1fr это minmax(auto,1fr), и длинное имя
+     категории без пробелов растянуло бы колонку шире контейнера. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.category-tile {
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 14px 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 56px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  transition: transform 90ms var(--ease), background-color 140ms var(--ease);
+}
+
+/* Тап по категории = сохранение записи. Отклик должен быть заметнее
+   обычной кнопки, потому что действие необратимое. */
+.category-tile:active {
+  transform: scale(0.96);
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface-2));
+  transition-duration: 0ms;
+}
+
+.category-tile-selected {
+  border-color: var(--accent);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+}
+
+/* Служебные плитки («Своя категория», «Настроить») — пунктир и цвет ссылки:
+   тап по обычной плитке в форме новой записи СОХРАНЯЕТ трату, поэтому
+   служебные обязаны читаться как другой класс действия, а не как категория. */
+.category-tile-utility {
+  color: var(--link);
+  border-style: dashed;
+  border-color: var(--border);
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.category-tile-utility svg {
+  flex: none;
+}
+
+.category-tile-utility:active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+}
+
+/* ---- Управление категориями ------------------------------------------ */
+
+.catman {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.catman-group {
+  display: flex;
+  flex-direction: column;
+  /* 8px — минимальный зазор между соседними тач-целями. */
+  gap: 8px;
+}
+
+.catman-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 2px;
+}
+
+.catman-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.catman-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 4px 4px 4px 14px;
+  min-height: 52px;
+  min-width: 0;
+}
+
+.catman-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.catman-action {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 90ms var(--ease), background-color var(--dur) var(--ease);
+}
+
+.catman-action:active {
+  transform: scale(0.9);
+  background: var(--surface-2);
+  transition-duration: 0ms;
+}
+
+/* Корзина в покое приглушена, а не красная: колонка из десятка красных
+   иконок кричит громче названий, ради которых список и открыли. Красный
+   появляется на нажатии и в подтверждении — там, где решение принимается. */
+.catman-action-danger:active {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface-2));
+}
+
+/* Строка в режиме правки разворачивается в колонку: поле 16px + две кнопки
+   по 44px в один ряд не влезают на 320px. */
+.catman-row-editing {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px;
+}
+
+.catman-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.catman-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.catman-form-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.catman-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--link);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 90ms var(--ease), background-color var(--dur) var(--ease);
+}
+
+.catman-add:active {
+  transform: scale(0.99);
+  background: var(--surface-2);
+  transition-duration: 0ms;
+}
+
+.catman-add svg {
+  flex: none;
+}
+
+.catman-empty {
+  margin: 0;
+  padding: 4px 2px 2px;
+}
+
+.catman-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.catman-skeleton-row {
+  height: 52px;
+  border-radius: var(--radius-sm);
+}
+
+/* Ошибка формы — с иконкой, а не только красным цветом. */
+.form-error:not(:empty) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  min-height: 0;
+}
+
+.form-error svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---- Month switcher -------------------------------------------------- */
+
+.month-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.month-nav {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 90ms var(--ease);
+}
+
+.month-nav:active {
+  transform: scale(0.92);
+  background: var(--surface-2);
+}
+
+.month-switcher-label {
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+/* capitalize подняло бы и "г." в "август 2026 г." — нужна только первая буква. */
+.month-switcher-label::first-letter {
+  text-transform: uppercase;
+}
+
+/* ---- Transaction list -------------------------------------------------- */
+
+.tx-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  min-height: 60px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 90ms var(--ease);
+}
+
+.tx-row:active {
+  transform: scale(0.985);
+}
+
+.tx-row-main {
+  min-width: 0;
+}
+
+.tx-row-masked {
+  cursor: default;
+  background: var(--surface-2);
+  box-shadow: none;
+  border: 1px dashed var(--border);
+}
+
+.tx-row-masked:active {
+  transform: none;
+}
+
+.tx-row-title {
+  font-weight: 600;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tx-row-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tx-row-amount {
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.tx-row-amount.expense {
+  color: var(--expense);
+}
+
+.tx-row-amount.income {
+  color: var(--income);
+}
+
+/* ---- Goals -------------------------------------------------------------- */
+
+.goal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.goal-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.goal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal-name {
+  font-weight: 700;
+  font-size: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.goal-archive {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  margin: -10px -10px -10px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: transform 90ms var(--ease);
+}
+
+.goal-archive:active {
+  transform: scale(0.9);
+  background: var(--surface-2);
+}
+
+.progress-track {
+  background: var(--surface-2);
+  border-radius: 999px;
+  height: 10px;
+  margin: 12px 0 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: var(--accent);
+  height: 100%;
+  border-radius: 999px;
+}
+
+.goal-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.goal-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px;
+  font-size: 14px;
+  min-height: 44px;
+}
+
+.progress-fill {
+  transition: width 260ms var(--ease);
+}
+
+/* ---- Report / charts --------------------------------------------------- */
+
+.report-section {
+  margin-bottom: 28px;
+}
+
+.report-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.pie-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+
+.pie-svg {
+  width: 100%;
+  height: auto;
+}
+
+.pie-hole {
+  fill: var(--bg);
+}
+
+.chart-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+
+.legend-label {
+  flex: 1;
+}
+
+.legend-value {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.chart-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bar-row-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.bar-track {
+  background: var(--surface-2);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.bar-row-value {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+
+
+
+
+
+
+
+
+/* ---- Состояния: загрузка / пусто / ошибка ---------------------------- */
+
+/* Скелетон, а не спиннер: спиннер сообщает "жди", скелетон — "вот столько
+   будет". Порог 300мс держится задержкой анимации, а не таймером в JS:
+   если данные пришли раньше, плейсхолдер не успевает проявиться и мигания
+   нет. Пульсация — opacity, лейаут не трогаем. */
+.skeleton-bar,
+.skeleton-row {
+  animation: skeleton-appear 220ms var(--ease) 300ms both;
+}
+
+.skeleton-bar {
+  background: var(--skeleton);
+  border-radius: 8px;
+}
+
+.skeleton .hero-card .skeleton-bar,
+.skeleton .stat-card .skeleton-bar,
+.catman-skeleton .skeleton-bar,
+.skeleton-row .skeleton-bar {
+  animation: skeleton-appear 220ms var(--ease) 300ms both, skeleton-pulse 1.4s ease-in-out 520ms infinite;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  min-height: 60px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+
+.skeleton-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@keyframes skeleton-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Пусто и ошибка: заголовок + подсказка + действие. Экран без действия —
+   тупик, из которого пользователь не знает, как выйти. */
+.state-block {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.state-block-error {
+  border: 1px solid var(--danger);
+}
+
+.state-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.state-hint {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.state-action {
+  margin-top: 18px;
+  min-width: 160px;
+}
+
+/* ---- Session expired ----------------------------------------------------- */
+
+.session-expired-screen {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.session-expired-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ---- Toast --------------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  text-align: center;
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-error {
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+/* ---- Отчёт: период, фильтры, представления ---------------------------- */
+
+/* Шапка отчёта: вид периода + шаг стрелками. Стрелки и подпись переиспользуют
+   .month-switcher из ленты — механика та же, менять её не за чем. */
+.period-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.period-control .month-switcher {
+  margin-bottom: 0;
+}
+
+/* Дальше последнего периода данных нет — шаг вперёд гасим, а не даём
+   упереться в пустой экран (для своего диапазона это ещё и future_range). */
+.month-nav[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Подпись своего диапазона кликабельна — пунктир показывает это без слов. */
+.period-label-btn {
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  min-height: 44px;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+
+.filter-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-open {
+  flex: 1;
+}
+
+/* Включённый фильтр виден и по кнопке, и по чипам ниже: цифры отчёта иначе
+   меняются молча и выглядят как потеря данных. */
+.filter-open-active {
+  color: var(--link);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.filter-reset {
+  flex: none;
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 90ms var(--ease);
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+.chip svg {
+  flex: none;
+  opacity: 0.65;
+}
+
+.filter-sheet {
+  gap: 18px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-field-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.filter-category-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Список категорий скроллится внутри себя: 12+ строк по 44px иначе
+   отталкивают кнопку «Применить» за пределы шторки. */
+.filter-category-list {
+  max-height: 264px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 12px;
+}
+
+.filter-summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.filter-clear-categories {
+  align-self: flex-start;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.filter-amount-row {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-actions .btn {
+  flex: 1;
+}
+
+.report-section .segmented {
+  margin-bottom: 14px;
+}
+
+.report-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+/* ---- Круговая ---------------------------------------------------------- */
+
+.pie-svg-holder {
+  position: relative;
+  width: 258px;
+  max-width: 100%;
+}
+
+.pie-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.pie-center-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Сумма стоит в отверстии бублика — держим её внутри, а не поверх кольца. */
+.pie-center-value {
+  max-width: 112px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* Доля подписана на самом секторе: обводка держит читаемость и на светлой,
+   и на тёмной заливке. */
+.pie-slice-label {
+  font-size: 12px;
+  font-weight: 700;
+  fill: #ffffff;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.4);
+  stroke-width: 2.6px;
+}
+
+/* Легенда — не подпись, а орган управления: тап скрывает ряд. Поэтому
+   строка целиком кнопка на 44px, а не текст с точкой. */
+.legend-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.legend-btn:active {
+  background: var(--surface-2);
+}
+
+.legend-btn-off {
+  opacity: 0.55;
+}
+
+.legend-btn-off .legend-label {
+  text-decoration: line-through;
+}
+
+.legend-swatch {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.chart-legend-inline {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.chart-legend-inline li {
+  flex: none;
+}
+
+.chart-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.chart-note-action {
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 13px;
+}
+
+/* ---- Столбцы ------------------------------------------------------------ */
+
+.bar-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.bar-row-head .bar-row-label {
+  margin-bottom: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Сумма стоит на самой строке — столбец читается без цвета и без легенды. */
+.bar-row-head .bar-row-value {
+  margin-top: 0;
+  flex: none;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.bar-row-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- Линия -------------------------------------------------------------- */
+
+.line-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.line-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.axis-line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.axis-label {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+/* Ряд подписан у последней точки: маркер (круг/квадрат) и подпись отличают
+   доход от расхода без опоры на цвет. */
+.series-label {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ---- Таблица ------------------------------------------------------------ */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table td,
+.data-table thead th:first-child {
+  padding: 10px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table thead th {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.data-table td.num,
+.data-table th.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.data-table tfoot td {
+  font-weight: 700;
+  border-bottom: none;
+}
+
+/* Заголовок-сортировка — тач-цель на всю высоту ячейки. Направление
+   показано знаком (↑/↓), а не только подсветкой. */
+.table-sort {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 6px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.table-sort-active {
+  color: var(--link);
+}
+
+/* ---- Сравнение ----------------------------------------------------------- */
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.delta-arrow {
+  width: 10px;
+  height: 10px;
+  flex: none;
+}
+
+/* Рост расхода — красный, снижение — зелёный. Цвет здесь дублирует стрелку,
+   а не заменяет её. */
+.delta-up {
+  color: var(--expense);
+}
+
+.delta-down {
+  color: var(--income);
+}
+
+.delta-flat {
+  color: var(--text-muted);
+}
+
+.compare-authors {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compare-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.compare-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.compare-card-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.compare-card-amount {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.compare-card-amount.expense {
+  color: var(--expense);
+}
+
+.compare-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.compare-periods {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.compare-total {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.compare-total-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.compare-total-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.compare-total-values {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.compare-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compare-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.compare-row-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Каждый столбец пары подписан своим периодом — какой из них какой, видно
+   без легенды и без цвета. */
+.pair-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pair-label {
+  width: 54px;
+  flex: none;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pair-row .bar-track {
+  flex: 1;
+  min-width: 0;
+}
+
+.pair-value {
+  width: 100px;
+  flex: none;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pair-a {
+  background: var(--accent);
+}
+
+.pair-b {
+  background: var(--text-muted);
+}

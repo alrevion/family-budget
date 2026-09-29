@@ -1,0 +1,39 @@
+name = "family-budget"
+main = "src/index.ts"
+compatibility_date = "2026-08-24"
+
+# База создана 2026-08-24, database_id ниже — реальный.
+# database_name должен совпадать со значением в package.json#scripts.migrate.
+[[d1_databases]]
+binding = "DB"
+database_name = "family-budget-db"
+database_id = "66e74bb7-f285-4e55-ba63-799257da1d5b"
+migrations_dir = "migrations"
+# По умолчанию wrangler трактует ЛЮБОЙ *.sql в migrations_dir как
+# миграцию (включая migrations/drop.sql) и применил бы его сразу вслед
+# за 0001_init.sql при первом же `npm run migrate`, стерев только что
+# созданную схему. Паттерн сужен до пронумерованных файлов: drop.sql
+# приглашается только вручную через
+#   npx wrangler d1 execute <DB> --file migrations/drop.sql
+migrations_pattern = "migrations/[0-9][0-9][0-9][0-9]_*.sql"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/tg/webhook"]
+# not_found_handling НЕ задаём: SPA-режим не нужен (экран отчёта
+# адресуется query-параметром ?month=YYYY-MM, а не путём), а
+# single-page-application вернул бы index.html с кодом 200 на
+# /api/* и /tg/webhook — Telegram счёл бы доставку успешной,
+# бот молча умер бы. См. план, раздел "Deploy unit".
+
+[triggers]
+crons = ["0 5 1 * *", "0 5 * * *"]
+
+# TODO(deploy): заполнить реальными значениями. BOT_USERNAME и
+# MINI_APP_SHORT_NAME — из BotFather, MINI_APP_URL — публичный HTTPS-адрес
+# этого же Worker'а (см. src/bot.ts, план "Cron"/шаг 15).
+[vars]
+BOT_USERNAME = "alrevion_family_budget_bot"
+MINI_APP_SHORT_NAME = "REPLACE_ME_app_short_name"
+MINI_APP_URL = "https://family-budget.dsfddff31.workers.dev"

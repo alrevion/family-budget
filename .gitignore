@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env*
+.DS_Store
+.claude-flow/
+.omc/state/
+.omc/handoffs/
