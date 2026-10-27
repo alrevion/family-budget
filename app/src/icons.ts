@@ -44,6 +44,25 @@ export const iconWarning = (size = 18): SVGSVGElement =>
 export const iconArrowLeft = (): SVGSVGElement => icon('<path d="M15 5l-7 7 7 7"/>', 22);
 export const iconArrowRight = (): SVGSVGElement => icon('<path d="M9 5l7 7-7 7"/>', 22);
 
+/** QR-рамка: вход в сканирование чека. */
+export const iconQr = (size = 20): SVGSVGElement =>
+  icon(
+    '<rect x="4" y="4" width="6" height="6" rx="1"/>' +
+      '<rect x="14" y="4" width="6" height="6" rx="1"/>' +
+      '<rect x="4" y="14" width="6" height="6" rx="1"/>' +
+      '<path d="M14 14h3M20 14v3M14 18v3M17 20h3"/>',
+    size,
+  );
+
+/** Магазин — вкладка «Магазины» и карточка чека. */
+export const iconShop = (size = 22): SVGSVGElement =>
+  icon(
+    '<path d="M3.5 10 5.5 5h13l2 5"/>' +
+      '<path d="M3.5 10a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0"/>' +
+      '<path d="M5 11.5V20h14v-8.5M9.5 20v-5h5v5"/>',
+    size,
+  );
+
 /** Ползунки — вход в управление категориями. Шестерёнка (12 зубцов) в 24px
  *  сетке при stroke-width 1.9 превращается в кашу; ползунки читаются. */
 export const iconSliders = (size = 20): SVGSVGElement =>

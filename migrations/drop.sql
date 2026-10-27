@@ -5,6 +5,12 @@
 DROP VIEW IF EXISTS v_balance;
 DROP INDEX IF EXISTS idx_tx_month;
 DROP INDEX IF EXISTS idx_cat_name_live;
+DROP INDEX IF EXISTS idx_receipts_tx;
+DROP INDEX IF EXISTS idx_receipts_shop;
+DROP INDEX IF EXISTS idx_receipts_identity;
+DROP INDEX IF EXISTS idx_shops_identity;
+DROP TABLE IF EXISTS receipts;
+DROP TABLE IF EXISTS shops;
 DROP TABLE IF EXISTS goal_allocations;
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS goals;
@@ -18,4 +24,4 @@ DROP TABLE IF EXISTS users;
 -- Проверено прогоном: без этой строки "и заново" из плана не работает.
 -- КАЖДАЯ новая миграция обязана попадать в этот список, иначе цикл
 -- "дропнуть и накатить заново" молча пропустит её.
-DELETE FROM d1_migrations WHERE name IN ('0001_init.sql', '0002_edited_by.sql');
+DELETE FROM d1_migrations WHERE name IN ('0001_init.sql', '0002_edited_by.sql', '0003_shops_receipts.sql');

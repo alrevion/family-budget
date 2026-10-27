@@ -7,6 +7,7 @@ import { renderOnboarding } from "./screens/onboarding.js";
 import { renderHome } from "./screens/home.js";
 import { renderFeed } from "./screens/feed.js";
 import { renderGoals } from "./screens/goals.js";
+import { renderShops } from "./screens/shops.js";
 import { renderReport } from "./screens/report.js";
 import { renderSessionExpired } from "./screens/session-expired.js";
 import { openNewTransactionSheet } from "./screens/new-transaction.js";
@@ -135,6 +136,8 @@ async function renderScreen(screenHost: HTMLElement): Promise<void> {
     await renderFeed(screenHost, () => {});
   } else if (activeTab === "goals") {
     await renderGoals(screenHost, () => {});
+  } else if (activeTab === "shops") {
+    await renderShops(screenHost, () => {});
   } else if (activeTab === "report") {
     await renderReport(screenHost, deepLinkMonth);
   }

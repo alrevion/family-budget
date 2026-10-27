@@ -75,11 +75,15 @@ export async function renderHome(container: HTMLElement, ctx: HomeCtx): Promise<
       type: "button",
       "aria-label": "Добавить запись",
       onclick: () =>
-        openNewTransactionSheet(() => {
-          showToast("Запись сохранена", "info");
-          void renderHome(container, ctx);
-          ctx.refreshChrome();
-        }),
+        openNewTransactionSheet(
+          () => {
+            showToast("Запись сохранена", "info");
+            void renderHome(container, ctx);
+            ctx.refreshChrome();
+          },
+          undefined,
+          { autoScan: true },
+        ),
     },
     [iconPlus()],
   );

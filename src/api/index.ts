@@ -17,6 +17,8 @@ import { mount as mountTransactions } from "./transactions";
 import { mount as mountCategories } from "./categories";
 import { mount as mountGoals } from "./goals";
 import { mount as mountReports } from "./reports";
+import { mount as mountReceipts } from "./receipts";
+import { mount as mountShops } from "./shops";
 
 export const api = new Hono<AppEnv>();
 
@@ -36,3 +38,5 @@ mountTransactions(api);
 mountCategories(api);
 mountGoals(api);
 mountReports(api);
+mountReceipts(api);
+mountShops(api);

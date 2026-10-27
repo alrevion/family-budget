@@ -12,10 +12,14 @@ import type {
   MonthlyReport,
   OnboardingState,
   PeriodSel,
+  ReceiptLookup,
   ReportFilters,
+  Shop,
+  ShopSummary,
   UpdateTransactionInput,
   User,
 } from "./api-types.js";
+import { fetchOfdData, parseOfdLink } from "./ofd-direct.js";
 
 let initData = "";
 let onUnauthorized: () => void = () => {};
@@ -31,7 +35,11 @@ export class ApiConflictError extends Error {}
 
 /** Любой другой сетевой/серверный сбой. */
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public code: string | null = null,
+  ) {
     super(message);
   }
 }
@@ -78,6 +86,16 @@ const ERROR_MESSAGES: Record<string, string> = {
   bad_min: "Некорректная сумма «от»",
   bad_max: "Некорректная сумма «до»",
   bad_amount_range: "Сумма «от» больше суммы «до»",
+  // Чеки ОФД и магазины.
+  bad_receipt_link: "Это не QR-код чека Soliq. Отсканируйте QR-код с бумажного чека.",
+  receipt_not_ready: "Чек не найден или ещё не обработан в ОФД. Попробуйте позже.",
+  receipt_not_found: "Чек не найден. Проверьте, что QR-код считан полностью.",
+  receipt_is_refund: "Это чек возврата — такие пока не поддерживаются.",
+  receipt_unavailable: "Сервис чеков сейчас недоступен. Введите сумму вручную.",
+  receipt_already_saved: "Этот чек уже записан в ленте.",
+  bad_receipt: "Чек не найден или уже записан. Отсканируйте его заново.",
+  shop_not_found: "Магазин не найден. Обновите список.",
+  bad_default_category: "Для магазина нужна расходная категория.",
 };
 
 function translateError(code: string | null, fallback: string): string {
@@ -114,7 +132,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   if (!res.ok) {
     const code = await safeErrorCode(res);
-    throw new ApiError(res.status, translateError(code, `Ошибка сервера (${res.status})`));
+    throw new ApiError(res.status, translateError(code, `Ошибка сервера (${res.status})`), code);
   }
 
   if (res.status === 204) return undefined as T;
@@ -183,6 +201,46 @@ export const updateTransaction = async (id: number, input: UpdateTransactionInpu
 
 export const deleteTransaction = async (id: number): Promise<void> => {
   await request<{ ok: true; transaction: MaskedTransaction }>("DELETE", `/api/transactions/${id}`);
+};
+
+// --- Чеки ОФД и магазины --------------------------------------------------
+/**
+ * Текст из QR-кода чека (ссылка ofd.soliq.uz/check?...).
+ *
+ * Чек сначала пробуем взять напрямую из ОФД с телефона: с edge Cloudflare
+ * new-ofd.soliq.uz недоступен (таймаут), а у клиента в Узбекистане CORS ОФД
+ * разрешает прямой запрос. Сервер по-прежнему разбирает ответ, кеширует чек
+ * в D1 и помнит категорию магазина — если прямой запрос не удался, работает
+ * обычный серверный путь.
+ */
+export async function lookupReceipt(text: string): Promise<ReceiptLookup> {
+  const link = parseOfdLink(text);
+  if (link !== null) {
+    const direct = await fetchOfdData(link);
+    if (direct.ok) {
+      try {
+        return await request<ReceiptLookup>("POST", "/api/receipts/lookup", {
+          text,
+          ofd: direct.data,
+        });
+      } catch (e) {
+        // 502 значит, что сервер сам не смог сходить в ОФД: пробуем ещё раз
+        // без `ofd` — вдруг чек уже в кеше. Остальные ошибки окончательные.
+        if (!(e instanceof ApiError) || e.status !== 502) throw e;
+      }
+    } else if (direct.code === "receipt_not_ready") {
+      throw new ApiError(404, ERROR_MESSAGES.receipt_not_ready!, "receipt_not_ready");
+    }
+  }
+  return request<ReceiptLookup>("POST", "/api/receipts/lookup", { text });
+}
+
+export const listShops = async () =>
+  (await request<{ shops: ShopSummary[] }>("GET", "/api/shops")).shops;
+
+/** null — забыть категорию магазина, подсказка снова не подставляется. */
+export const setShopCategory = async (id: number, defaultCategoryId: number | null): Promise<void> => {
+  await request<{ ok: true }>("PATCH", `/api/shops/${id}`, { defaultCategoryId });
 };
 
 // --- Категории ------------------------------------------------------------

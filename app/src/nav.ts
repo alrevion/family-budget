@@ -1,12 +1,13 @@
 import { el } from "./dom.js";
-import { iconHome, iconFeed, iconGoals, iconReport } from "./icons.js";
+import { iconHome, iconFeed, iconGoals, iconReport, iconShop } from "./icons.js";
 
-export type Tab = "home" | "feed" | "goals" | "report";
+export type Tab = "home" | "feed" | "goals" | "shops" | "report";
 
 const TABS: { id: Tab; label: string; icon: () => SVGSVGElement }[] = [
   { id: "home", label: "Главная", icon: iconHome },
   { id: "feed", label: "Лента", icon: iconFeed },
   { id: "goals", label: "Цели", icon: iconGoals },
+  { id: "shops", label: "Магазины", icon: iconShop },
   { id: "report", label: "Отчёт", icon: iconReport },
 ];
 

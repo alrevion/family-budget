@@ -6,13 +6,15 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "setup": "node scripts/setup.mjs",
     "test": "vitest run",
+    "check": "tsc -p tsconfig.json && tsc -p app/tsconfig.json && vitest run",
     "migrate": "wrangler d1 migrations apply family-budget-db --local",
     "build": "npm run build:app",
-    "build:app": "rm -rf dist && tsc -p app/tsconfig.json && cp app/index.html app/styles.css dist/"
+    "build:app": "node scripts/build.mjs && tsc -p app/tsconfig.json"
   },
   "dependencies": {
-    "hono": "^4.13.4"
+    "hono": "^4.13.14"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.22.0",

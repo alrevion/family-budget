@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Family Budget">
+  <rect width="64" height="64" rx="15" fill="#0f7a5c" />
+  <path
+    d="M17 23h25a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H19a3 3 0 0 1-3-3V21a2 2 0 0 1 2-2h21"
+    fill="none"
+    stroke="#fff"
+    stroke-width="3.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="39" cy="35" r="2.6" fill="#fff" />
+</svg>

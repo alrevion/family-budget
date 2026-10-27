@@ -19,6 +19,8 @@ export interface TelegramWebApp {
   initData: string;
   initDataUnsafe: { start_param?: string; user?: { id: number } };
   colorScheme: "light" | "dark";
+  /** "android" | "ios" | "tdesktop" | "web" | "macos" | "linux" | … */
+  platform?: string;
   themeParams?: ThemeParams;
   ready(): void;
   expand(): void;
@@ -44,6 +46,13 @@ export interface TelegramWebApp {
     impactOccurred(style: "light" | "medium" | "heavy"): void;
     notificationOccurred(type: "error" | "success" | "warning"): void;
   };
+  /** Bot API 6.4+. На Desktop камеры нет — метод может отсутствовать. */
+  isVersionAtLeast?(version: string): boolean;
+  showScanQrPopup?(
+    params: { text?: string },
+    callback?: (text: string) => boolean | void,
+  ): void;
+  closeScanQrPopup?(): void;
 }
 
 declare global {

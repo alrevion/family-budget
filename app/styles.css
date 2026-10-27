@@ -181,7 +181,7 @@ select {
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--surface);
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom);
@@ -2053,4 +2053,365 @@ select {
 
 .pair-b {
   background: var(--text-muted);
+}
+
+/* ---- QR-чек в форме новой записи -------------------------------------- */
+
+.receipt-scanner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+/* Атрибут hidden перебивается авторским display:flex — гасим явно. */
+.receipt-scanner[hidden] {
+  display: none;
+}
+
+.receipt-scan-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.receipt-scan-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  color: var(--accent);
+}
+
+.receipt-scan-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.receipt-scan-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.receipt-scan-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.receipt-scan-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.receipt-scan-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.receipt-scan-btn svg {
+  flex: none;
+}
+
+/* Сворачиваемая вставка ссылки: на Desktop камера недоступна. */
+.receipt-link summary {
+  font-weight: 600;
+  color: var(--link);
+  cursor: pointer;
+  font-size: 13px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  list-style: none;
+}
+
+.receipt-link summary::-webkit-details-marker {
+  display: none;
+}
+
+.receipt-link-form {
+  margin-top: 4px;
+}
+
+.receipt-scan-error {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.receipt-scan-error[hidden] {
+  display: none;
+}
+
+.receipt-scan-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 2px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.receipt-scan-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+  animation: receipt-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes receipt-pulse {
+  50% {
+    opacity: 0.3;
+    transform: scale(0.75);
+  }
+}
+
+.receipt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px 14px;
+  min-width: 0;
+}
+
+.receipt-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.receipt-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.receipt-card-change {
+  background: none;
+  border: none;
+  color: var(--link);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 0 6px 8px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.receipt-shop {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.receipt-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.receipt-total {
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 2px;
+}
+
+.receipt-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.receipt-memory {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--link);
+}
+
+.receipt-card .btn {
+  margin-top: 4px;
+}
+
+/* ---- Раздел «Магазины» ------------------------------------------------- */
+
+.shops-heading {
+  margin: 0 0 16px;
+}
+
+.shops-title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.shops-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  min-height: 64px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 90ms var(--ease);
+}
+
+.shop-row:active {
+  transform: scale(0.985);
+}
+
+.shop-row-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+  color: var(--accent);
+}
+
+.shop-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.shop-row-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shop-row-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shop-row-amount {
+  flex: none;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.shop-legal {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.shop-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.shop-stat {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  min-width: 0;
+}
+
+.shop-stat-value {
+  display: block;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.shop-stat-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.shop-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.shop-requisites {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.shop-sheet {
+  gap: 14px;
 }

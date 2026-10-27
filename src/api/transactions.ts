@@ -79,6 +79,32 @@ export function mount(api: Hono<AppEnv>): void {
       hiddenUntil = HIDE_OPTIONS[hide]!(today);
     }
 
+    // Чек ОФД (необязательно): сумма и дата уже подставлены клиентом, сервер
+    // проверяет, что чек существует и ещё не привязан к другой трате.
+    let receiptId: number | null = null;
+    let receiptShopId: number | null = null;
+    if (body.receiptId !== undefined && body.receiptId !== null) {
+      const rawReceiptId = body.receiptId;
+      if (
+        typeof rawReceiptId !== "number" ||
+        !Number.isInteger(rawReceiptId) ||
+        rawReceiptId <= 0
+      ) {
+        return c.json({ error: "bad_receipt" }, 400);
+      }
+      // Чек — всегда покупка. Доход с чеком означал бы, что клиент перепутал
+      // тип операции, и память магазина получила бы доходную категорию.
+      if (kind !== "expense") return c.json({ error: "bad_receipt" }, 400);
+
+      const receipt = await q.getReceipt(c.env.DB, rawReceiptId);
+      if (receipt === null) return c.json({ error: "bad_receipt" }, 400);
+      if (receipt.transactionId !== null) {
+        return c.json({ error: "receipt_already_saved" }, 409);
+      }
+      receiptId = receipt.id;
+      receiptShopId = receipt.shopId;
+    }
+
     const mismatch = await categoryMismatch(c.env.DB, categoryId, kind as TransactionKind);
     if (mismatch !== null) return c.json({ error: mismatch }, 400);
 
@@ -92,6 +118,20 @@ export function mount(api: Hono<AppEnv>): void {
       hiddenUntil,
       createdAt: new Date().toISOString(),
     });
+
+    if (receiptId !== null && receiptShopId !== null) {
+      const linked = await q.linkReceiptToTransaction(c.env.DB, receiptId, id);
+      // Между проверкой и вставкой чек мог сохранить партнёр: откатываем
+      // только что созданную трату, иначе один чек попал бы в бюджет дважды.
+      if (!linked) {
+        await q.deleteTransaction(c.env.DB, id);
+        return c.json({ error: "receipt_already_saved" }, 409);
+      }
+      // Память магазина: последняя выбранная категория становится
+      // подсказкой при следующем сканировании чека этого магазина.
+      await q.setShopDefaultCategory(c.env.DB, receiptShopId, categoryId, new Date().toISOString());
+    }
+
     const transaction = await q.getTransaction(c.env.DB, c.get("user").telegramId, id, today);
     return c.json({ transaction }, 201);
   });
@@ -179,6 +219,9 @@ export function mount(api: Hono<AppEnv>): void {
     }
     // Ответ идёт через ту же проекцию R3, что и чтение.
     const transaction = await q.getTransaction(c.env.DB, viewer, id, today);
+    // Чек удаляем вместе с тратой: иначе тот же QR нельзя будет записать
+    // заново после исправления ошибки.
+    await q.deleteReceiptsForTransaction(c.env.DB, id);
     await q.deleteTransaction(c.env.DB, id);
     return c.json({ ok: true, transaction });
   });

@@ -94,3 +94,54 @@ export interface Balance {
   inGoals: number;
   free: number;
 }
+
+// --- Магазины и чеки ОФД ------------------------------------------------
+
+export interface ReceiptItem {
+  name: string;
+  qty: number;
+  price: number;
+  productName: string | null;
+}
+
+export interface Receipt {
+  id: number;
+  shopId: number;
+  terminalId: string;
+  paymentNo: string;
+  paymentDate: string;
+  occurredOn: string;
+  total: number;
+  items: ReceiptItem[];
+  /** null — чек распознан, но трата ещё не сохранена. */
+  transactionId: number | null;
+}
+
+export interface Shop {
+  id: number;
+  identity: string;
+  tin: string;
+  name: string;
+  legalName: string;
+  address: string | null;
+  terminalId: string | null;
+  defaultCategoryId: number | null;
+}
+
+/** Магазин для раздела «Магазины»: память + статистика по сохранённым чекам. */
+export interface ShopSummary extends Shop {
+  defaultCategoryName: string | null;
+  visits: number;
+  totalSpent: number;
+  lastVisit: string | null;
+}
+
+/** Ответ на распознавание QR: чек, магазин и подсказка категории. */
+export interface ReceiptLookup {
+  receipt: Receipt;
+  shop: Shop;
+  suggestedCategoryId: number | null;
+  suggestedCategoryName: string | null;
+  /** true — ответ из кеша D1, в ОФД не ходили. */
+  cached: boolean;
+}

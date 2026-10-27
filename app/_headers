@@ -1,0 +1,8 @@
+# Заголовки для статики Mini App (Cloudflare Workers Static Assets).
+# CSP пускает только свой код, telegram-web-app.js и API ОФД, к которому
+# клиент ходит напрямую при сканировании чека (см. app/src/ofd-direct.ts).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://new-ofd.soliq.uz; font-src 'self'; frame-src 'self' https://telegram.org https://*.telegram.org; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'

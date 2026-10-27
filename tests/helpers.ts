@@ -11,6 +11,7 @@ import { vi } from "vitest";
 import { api } from "../src/api";
 import schemaSql from "../migrations/0001_init.sql?raw";
 import editedBySql from "../migrations/0002_edited_by.sql?raw";
+import shopsReceiptsSql from "../migrations/0003_shops_receipts.sql?raw";
 import dropSql from "../migrations/drop.sql?raw";
 import { ALISHER_ID, DILNOZA_ID } from "./fixtures/init-data";
 
@@ -39,7 +40,11 @@ const DROP_STATEMENTS = statements(dropSql).filter(
  * Все миграции по порядку, а не только первая: иначе тест зелёный на схеме,
  * которой в проде уже нет. Индекс в массиве = порядковый номер миграции.
  */
-export const MIGRATIONS: string[][] = [statements(schemaSql), statements(editedBySql)];
+export const MIGRATIONS: string[][] = [
+  statements(schemaSql),
+  statements(editedBySql),
+  statements(shopsReceiptsSql),
+];
 
 /** Категории из сида 0001_init.sql — по именам, чтобы тесты не зависели от порядка INSERT. */
 export const CATEGORY = {

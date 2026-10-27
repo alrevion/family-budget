@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Types, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck Worker and Mini App
+        run: |
+          npx tsc -p tsconfig.json
+          npx tsc -p app/tsconfig.json
+
+      - name: Tests (workerd + D1)
+        run: npm test
+
+      - name: Build static assets
+        run: npm run build
+
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev

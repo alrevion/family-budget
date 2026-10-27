@@ -153,6 +153,8 @@ export interface CreateTransactionInput {
   occurredOn?: string;
   comment?: string | null;
   hide?: HideOption | null;
+  /** Чек ОФД, из которого подставлена сумма. Сервер свяжет его с тратой. */
+  receiptId?: number;
 }
 
 export interface UpdateTransactionInput {
@@ -161,4 +163,52 @@ export interface UpdateTransactionInput {
   categoryId: number;
   occurredOn: string;
   comment: string | null;
+}
+
+// --- Магазины и чеки ОФД ------------------------------------------------
+
+export interface ReceiptItem {
+  name: string;
+  qty: number;
+  price: number;
+  productName: string | null;
+}
+
+export interface Receipt {
+  id: number;
+  shopId: number;
+  terminalId: string;
+  paymentNo: string;
+  paymentDate: string;
+  occurredOn: string;
+  total: number;
+  items: ReceiptItem[];
+  /** null — чек распознан, но трата ещё не сохранена. */
+  transactionId: number | null;
+}
+
+export interface Shop {
+  id: number;
+  identity: string;
+  tin: string;
+  name: string;
+  legalName: string;
+  address: string | null;
+  terminalId: string | null;
+  defaultCategoryId: number | null;
+}
+
+export interface ShopSummary extends Shop {
+  defaultCategoryName: string | null;
+  visits: number;
+  totalSpent: number;
+  lastVisit: string | null;
+}
+
+export interface ReceiptLookup {
+  receipt: Receipt;
+  shop: Shop;
+  suggestedCategoryId: number | null;
+  suggestedCategoryName: string | null;
+  cached: boolean;
 }

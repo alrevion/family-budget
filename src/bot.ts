@@ -68,8 +68,17 @@ function openAppFallbackKeyboard(env: Env, month?: string): TelegramReplyMarkup 
   // Фолбэк по плану (шаг 15): если web_app-кнопка недоступна — обычная
   // ссылка на прямой запуск Mini App. startapp допускает только
   // [A-Za-z0-9_-], "YYYY-MM" укладывается.
+  //
+  // Short name необязателен: без /newapp в BotFather (или с заглушкой
+  // REPLACE_ME… из шаблона) t.me-ссылка вела бы в никуда — тогда отдаём
+  // прямую HTTPS-ссылку на Worker, она работает всегда.
+  const short = env.MINI_APP_SHORT_NAME?.trim() ?? "";
   const startapp = month ?? "home";
-  const url = `https://t.me/${env.BOT_USERNAME}/${env.MINI_APP_SHORT_NAME}?startapp=${startapp}`;
+  if (short === "" || short.startsWith("REPLACE_ME") || env.BOT_USERNAME === "") {
+    const url = month ? `${env.MINI_APP_URL}?month=${month}` : env.MINI_APP_URL;
+    return { inline_keyboard: [[{ text: "Открыть приложение", url }]] };
+  }
+  const url = `https://t.me/${env.BOT_USERNAME}/${short}?startapp=${startapp}`;
   return { inline_keyboard: [[{ text: "Открыть приложение", url }]] };
 }
 

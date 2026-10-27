@@ -13,3 +13,4 @@ export * from "./transactions";
 export * from "./categories";
 export * from "./goals";
 export * from "./reports";
+export * from "./shops";
