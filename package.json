@@ -17,7 +17,7 @@
     "hono": "^4.13.14"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
     "@cloudflare/workers-types": "^5.20260823.1",
     "@telegram-apps/init-data-node": "^2.0.10",
     "typescript": "^7.0.2",
